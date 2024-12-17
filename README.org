@@ -1,0 +1,14 @@
+#+TITLE: Android Samples
+
+* Build Android Applications Using CommandLine WorkFlow
+- This repository contains all of my experiments to build android applications using minimal command line utilities provided by the android, kotlin and java.
+- I create this repo, to simplify the build process of android and getting rid of all the headache of build systems (gradle, maven) and IDEs like (eclipse, android studio, etc.).
+- Here, I try to build fairly complex android application with just simple command line and batch scripts. (For now, I will start with basic applications & build on top of that.).
+- I plan to use ~kotlin~ only and I wants to use ~android-sdk~ to build native C/C++ libraries. (let's see..)
+* MyApp
+- It's my first "Hello,World!" project to build on android.
+- build instructions are inside ~MyApp~ folder.
+- Although it's centered around windows. You can get that to work on linux also.
+
+----------
+NB: Time to time, I will update my android journey in this repository. Let's look forward.

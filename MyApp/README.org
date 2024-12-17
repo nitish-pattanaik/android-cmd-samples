@@ -40,12 +40,11 @@
 3. Compile .class files into a .jar using d8.
 4. Convert the .jar to .dex format using d8.
 5. Package the resources and .dex into an unsigned APK using aapt.
-6. Align the Apk with zipalign.
-7. Create the a key using keytool (from jvm) if you don't have yet.
+6. Align the APK with zipalign.
+7. Create a key using keytool (from jvm) if you don't have yet.
 8. Sign the APK using apksigner.
 9. Connect your local android device to your computer. (developer options & USB Debugging needs to be enabled)
 10. At last, install your signed application in that device using adb.
-
 
 
 ** Step-By-Step Guide
@@ -141,7 +140,7 @@ Install command complete in 562 ms
 
 *** SETUP virtual emulator through `avdmanager`
 - In this project, avdmanager is not used. I try to install in my own local android device. Because it's fast.
-- If you have a monster computer you can try...
+- If you have a monster computer you can try avdmanager with android emulator.
 - Install Systemimages:
   ~sdkmanager "system-images;android-35;google_apis_playstore;x86_64"~
 - Create an AVD:
@@ -220,6 +219,8 @@ This method gives you a detailed, manual build process ideal for learning and un
 
 
 ** AAPT2 instead of AAPT
+Here, I just try to use ~aapt2~ instead of traditional ~aapt~. Android documentation also supports ~aapt2~, but I can't make it work. Maybe there's some mistake on my end. Let's see what happens. I'will continue  to learn more and explore more.
+
 #+BEGIN_SRC shell
 - kotlinc -cp "%ANDROID_HOME%/platforms/android-35/android.jar" src/com/example/myapp/MainActivity.kt -d bin_aapt2
 
@@ -242,5 +243,5 @@ This method gives you a detailed, manual build process ideal for learning and un
 
 - %ANDROID_HOME%/build-tools/36.0.0-rc1/apksigner sign --ks %ANDROID_HOME%/keystore/keystore.jks --ks-key-alias android-key --ks-pass pass:android --key-pass pass:android --min-sdk-version 30  --out bin_aapt2/myapp-aligned-signed.apk bin_aapt2/myapp-aligned.apk
 
-- adb install -r bin_aapt2/myapp-aligned-signed.apk (needs to test: it's running or not...)
+- adb install -r bin_aapt2/myapp-aligned-signed.apk
 #+END_SRC
