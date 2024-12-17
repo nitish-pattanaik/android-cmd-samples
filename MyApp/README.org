@@ -1,0 +1,246 @@
+#+TITLE: ANDROID Setup On Windows Without Using Android Studio & Gradle
+#+DESCRIPTION: In this guide I don't use any kind of UI like Android Studio and I don't use fancy build systems like gradle. I just used simple emacs and command line tools provided by the android.
+
+* Hello-World Android Application Using Kotlin
+- This is the most simplest guide to build an android application using a simple .kt file which shows "HelloWorld" on the screen.
+- In this guide I did not use *Android Studio* or *gradle* or *maven* or *cmake* or *android emulator*.
+- I simply build a *hello,world* application using command line utilities provided by the android on windows platform.
+  [Running the same thing on linux would not be that difficult]
+- This guide takes some inspiration from: https://github.com/hereket/handmade_native_android/blob/main/build.sh
+** Prerequisites
+*** android-sdk
+- Install command-tools from this site.
+- [[https://developer.android.com/studio#command-tools][commandlinetools-win-11076708_latest.zip]]
+- unzip the command line tools zip file it will give *cmdline-tools*.
+  Inside this it has *bin*, *lib*, *source.properties*.
+  In this directory, create a new folder called *latest* and move all contents inside that latest.
+- Create ~%ANDROID_HOME%~ system variable and store a PATH for this variable. In my case it is: ~C:\dev\android-sdk\~
+  Put *cmdline-tools* inside ~%ANDROID_HOME%~ and add ~%ANDROID_HOME%\cmdline-tools\latest\bin\~ in to your system path.
+- Use sdkmanager to install several dependencies
+#+BEGIN_SRC shell
+- sdkmanager --list
+- sdkmanager --licenses
+- sdkmanager --update
+- sdkmanager "platforms;android-35" "build-tools;36.0.0-rc1" "platform-tools" "emulator" "system-images;android-35;google_apis_playstore;x86_64"
+- sdkmanager --list_installed
+#+END_SRC
+
+*** android-ndk
+- If you plan to use C/C++ code in your application, otherwise you don't need this. Specifically, in this project I did not use this.
+- Install androidNDK: [[https://developer.android.com/ndk/downloads][download-android-ndk]]
+
+*** kotlinc [kotlin compiler]
+- You need kotlinc compiler to compile your .kt files.
+- Download & Install kotlin: [[https://github.com/JetBrains/kotlin/releases/tag/v2.1.0][download-kotlin2.10]]
+
+
+** Summary [10 steps only]
+1. Compile all .kt files to corresponding .class files in the /bin directory.
+2. Accumulate all .class files using cmd/bash magic.
+3. Compile .class files into a .jar using d8.
+4. Convert the .jar to .dex format using d8.
+5. Package the resources and .dex into an unsigned APK using aapt.
+6. Align the Apk with zipalign.
+7. Create the a key using keytool (from jvm) if you don't have yet.
+8. Sign the APK using apksigner.
+9. Connect your local android device to your computer. (developer options & USB Debugging needs to be enabled)
+10. At last, install your signed application in that device using adb.
+
+
+
+** Step-By-Step Guide
+*** Compile you kotlin source code into class files
+#+BEGIN_SRC shell
+kotlinc -cp "C:\dev\android-sdk\platforms\android-35\android.jar" src\com\example\myapp\MainActivity.kt -d bin
+#+END_SRC
+
+*** Find and Collect All `.class` Files
+- If you've compiled Kotlin code into `.class` files, they should be located in a directory like `bin/` (my case).
+- I just compile all files to .class
+#+BEGIN_SRC shell
+  # CLASS_FILES=$(find bin/ -iname "*.class")
+#+END_SRC
+
+*** Compile `.class` Files into a `.jar` Using `d8`
+- Convert the `.class` files into a `.jar` with `d8`:
+#+BEGIN_SRC shell
+  %ANDROID_HOME%/build-tools/36.0.0-rc1/d8 --classpath "C:\dev\android-sdk\platforms\android-35\android.jar" bin\com\example\myapp\MainActivity.class --output bin/my_classes.jar --no-desugaring
+
+%ANDROID_HOME%/build-tools/36.0.0-rc1/d8 bin/com/example/myapp/*.class --output bin_aapt2/my_classes.jar --no-desugaring
+#+END_SRC
+
+*** Convert the `.jar` to `.dex` Format Using `d8`
+- Now, convert *my_classes.jar* into the *.dex* format:
+- dex_output directory should be there...
+#+BEGIN_SRC shell
+%ANDROID_HOME%/build-tools/36.0.0-rc1/d8 bin/my_classes.jar --output bin/dex_output
+#+END_SRC
+This should produce a *classes.dex* file in *bin/dex_output/*
+
+*** Package Resources and `.dex` into an Unsigned APK Using `aapt`
+- Use `aapt` to create the APK, including the resources and the `.dex` file:
+- If you have some assets, then use *-A assets*, if not then remove
+- The R.java file is generated during the aapt packaging step. This file maps your resources (like layouts, drawables, and strings) to unique IDs that you can reference in your code.
+
+#+BEGIN_SRC shell
+%ANDROID_HOME%/build-tools/36.0.0-rc1/aapt package -f -M AndroidManifest.xml -S res -A assets -I %ANDROID_HOME%/platforms/android-35/android.jar -F bin/myapp.unsigned.apk bin/dex_output/
+%ANDROID_HOME%/build-tools/36.0.0-rc1/aapt package -f -M AndroidManifest.xml -S res -I %ANDROID_HOME%/platforms/android-35/android.jar -F bin/myapp.unsigned.apk bin/dex_output/
+#+END_SRC
+
+#+BEGIN_EXAMPLE
+- CommandLine Flags:
+  -J: src flag tells aapt to generate the R.java file and place it in the src/ directory. Let's explain the flags:
+  -f: Force overwrite existing files.
+  -m: Create the package directory structure.
+  -J src: Generate the R.java file and put it in the src directory.
+  -M AndroidManifest.xml: Use this manifest file.
+  -S res: Use the resources in the res folder.
+  -I %ANDROID_HOME%/platforms/android-35/android.jar: Include the Android SDK jar for reference.
+  -F bin/myapp.apk: Output the APK to bin/myapp.apk
+#+END_EXAMPLE
+
+- This will create *myapp.unsigned.apk* inside bin/.
+
+*** Align the APK with `zipalign`
+- If your APK contains shared libraries (.so files), use -P 16 to ensure that they're aligned to a 16KiB page boundary suitable for mmap(2) in both 16KiB and 4KiB devices.
+  ~zipalign -P 16 -f -v 4 infile.apk outfile.apk~  [not in my case]...(just for reference)
+#+BEGIN_SRC shell
+%ANDROID_HOME%/build-tools/36.0.0-rc1/zipalign -v 4 bin/myapp.unsigned.apk bin/myapp-aligned.apk
+#+END_SRC
+
+*** Sign the APK with `apksigner`
+- If you don't have *keystore.jks* then just create one first:
+
+#+BEGIN_SRC shell
+keytool -genkeypair -v -keystore C:\dev\android-sdk\keystore\keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias android-key -storepass android -keypass android -dname "CN=mqttserver.ibm.com, OU=ID, O=IBM, L=Hursley, S=Hants, C=GB"
+#+END_SRC
+
+- Then only use this command...
+#+BEGIN_SRC shell
+%ANDROID_HOME%/build-tools/36.0.0-rc1/apksigner sign --ks %ANDROID_HOME%/keystore/keystore.jks --ks-key-alias android-key --ks-pass pass:android --key-pass pass:android --out bin/myapp-aligned-signed.apk bin/myapp-aligned.apk
+#+END_SRC
+- It will create *bin/myapp-aligned-signed.ap* which is aligned and signed.
+
+*** Install the APK Using `adb`
+- List all connected devices:
+  ~adb devices~
+
+- Install using adb:
+  ~adb install -r bin/myapp-aligned-signed.apk~
+
+- If everything goes well, then you should see something like this...
+
+#+BEGIN_SRC shell
+C:\PROG_DIR\android\MyApp>adb install -r bin/myapp-aligned-signed.apk
+Performing Incremental Install
+Serving...
+All files should be loaded. Notifying the device.
+Success
+Install command complete in 562 ms
+#+END_SRC
+
+*** SETUP virtual emulator through `avdmanager`
+- In this project, avdmanager is not used. I try to install in my own local android device. Because it's fast.
+- If you have a monster computer you can try...
+- Install Systemimages:
+  ~sdkmanager "system-images;android-35;google_apis_playstore;x86_64"~
+- Create an AVD:
+  ~avdmanager create avd -n first_test -k "system-images;android-35;google_apis_playstore;x86_64" -p %ANDROID_HOME%\.android\avd\~
+- List AVDs:
+  ~avdmanager list avd~
+- Start an AVD:
+  ~emulator -avd <AVD_NAME>~
+
+- Launch the app on you device:
+~adb shell am start -n com.example.myapp/.MainActivity~
+
+- Uninstall existing app:
+~adb uninstall com.example.myapp~
+
+
+** Project Structure
+- After completing above steps, your project structure should look like this.
+- using: ~tree /F MyApp~
+#+BEGIN_SRC shell
+C:\PROG_DIR\ANDROID\MYAPP
+│   AndroidManifest.xml
+│
+├───bin
+│   │   myapp-aligned-signed.apk
+│   │   myapp-aligned-signed.apk.idsig
+│   │   myapp-aligned.apk
+│   │   myapp.unsigned.apk
+│   │   my_classes.jar
+│   │
+│   ├───com
+│   │   └───example
+│   │       └───myapp
+│   │               MainActivity.class
+│   │
+│   ├───dex_output
+│   │       classes.dex
+│   │
+│   └───META-INF
+│           main.kotlin_module
+│
+├───res
+│   ├───layout
+│   ├───mipmap
+│   │       icon_72.png
+│   │
+│   └───values
+│           styles.xml
+│
+└───src
+    └───com
+        └───example
+            └───myapp
+                    MainActivity.kt
+                    R.java
+#+END_SRC
+
+** Things to Note
+*** Directory Structure
+Ensure your directories are set up correctly
+- `bin/` contains your `.class` files.
+- `res/` contains your Android resources. (optional, but i have.. to set icon and theme)
+- `assets/` contains any asset files.(optional)
+- `AndroidManifest.xml` is in the root of your project. (impt)
+
+*** Dependencies
+- If your project uses external libraries, make sure to include them in the classpath during compilation.
+
+*** Error Debugging
+If `d8` or `aapt` throws errors, double-check:
+- *AndroidManifest.xml* for any missing attributes.
+- *Resource paths* to ensure files exist (e.g., `res/mipmap/ic_launcher.png`).
+- The validity of the `.jar` and `.dex` files.
+
+This method gives you a detailed, manual build process ideal for learning and understanding Android's underlying build steps.
+
+
+** AAPT2 instead of AAPT
+#+BEGIN_SRC shell
+- kotlinc -cp "%ANDROID_HOME%/platforms/android-35/android.jar" src/com/example/myapp/MainActivity.kt -d bin_aapt2
+
+- %ANDROID_HOME%/build-tools/36.0.0-rc1/d8 --classpath "C:\dev\android-sdk\platforms\android-35\android.jar" bin/com/example/myapp/*.class --output bin_aapt2/my_classes.jar --no-desugaring
+
+- %ANDROID_HOME%/build-tools/36.0.0-rc1/d8 bin_aapt2/my_classes.jar --output bin_aapt2/dex_output
+
+- %ANDROID_HOME%/build-tools/36.0.0-rc1/aapt2 compile -o compiled_res res\mipmap\icon_72.png res\values\styles.xml
+
+- %ANDROID_HOME%\build-tools\36.0.0-rc1\aapt2 link ^
+    -o bin_aapt2\myapp.unsigned.apk ^
+    -I %ANDROID_HOME%\platforms\android-35\android.jar ^
+    --manifest AndroidManifest.xml ^
+    --java srcaapt2 ^
+    compiled_res\mipmap_icon_72.png.flat compiled_res\values_styles.arsc.flat
+
+- zip myapp.unsigned.withdex.apk myapp.unsigned.apk dex_output/classes.dex
+
+- %ANDROID_HOME%/build-tools/36.0.0-rc1/zipalign -v 4 bin_aapt2/myapp.unsigned.withdex.apk bin_aapt2/myapp-aligned.apk
+
+- %ANDROID_HOME%/build-tools/36.0.0-rc1/apksigner sign --ks %ANDROID_HOME%/keystore/keystore.jks --ks-key-alias android-key --ks-pass pass:android --key-pass pass:android --min-sdk-version 30  --out bin_aapt2/myapp-aligned-signed.apk bin_aapt2/myapp-aligned.apk
+
+- adb install -r bin_aapt2/myapp-aligned-signed.apk (needs to test: it's running or not...)
+#+END_SRC
