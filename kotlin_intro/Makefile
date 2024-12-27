@@ -12,15 +12,17 @@ CLASS = MainKt
 # -Xlist-phases -> list phases after IR..
 # -Xphases-to-dump=IrLowering
 
+
+FLAGS =  -verbose -Werror -Wextra
+EFLAGS = -no-jdk -no-reflect # but -no-stdlib is hard..
 XFLAGS = -Xdebug -Xreport-all-warnings -Xuse-fast-jar-file-system
-FLAGS =  -verbose -Werror -Wextra -no-jdk -no-reflect
-# but -no-stdlib is hard..
+
 
 .PHONY: compile run clean
 
 # compile .kt file to .clss file and that in current directory
 compile:
-	$(KTC) $(FLAGS) $(FILE) -d .
+	$(KTC) $(FLAGS) $(XFLAGS) $(FILE) -d .
 
 # run .class file using kotlin <CLASSNAME>
 run: compile

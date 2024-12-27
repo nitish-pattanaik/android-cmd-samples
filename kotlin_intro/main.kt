@@ -14,13 +14,14 @@ fun sum(a: Int, b: Int): Int {
 fun mult(a: Int, b: Int) = a * b
 
 //  Unit means void
-fun div(a: Int, b: Int): Unit {
+fun div(a: Int, b: Int) {
 	println("Division of $a and $b is ${a/b}")
 }
 
-fun floatDiv(a: Float, b: Float) : Unit {
+fun floatDiv(a: Float, b: Float) {
 	println("FloatDiv of $a and $b is ${a/b}")
 }
+
 fun main() {
 	print("print to console: ")
 	println("Hello From Main")
@@ -40,7 +41,7 @@ fun main() {
 
 	//some strings
 	z += " " + "hello"
-	var k = "$z and me"
+	val k = "$z and me"
 	println("z is: $z")
 	println("k is: $k")
 
