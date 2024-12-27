@@ -3,6 +3,8 @@ KT = kotlin
 JAVA = java
 FILE = main.kt
 CLASS = MainKt
+OUTPUT_DIR = out
+
 
 
 # It will include whole kotlin runtime.. it will increase the size of .class but it's self contained
@@ -22,11 +24,11 @@ XFLAGS = -Xdebug -Xreport-all-warnings -Xuse-fast-jar-file-system
 
 # compile .kt file to .clss file and that in current directory
 compile:
-	$(KTC) $(FLAGS) $(XFLAGS) $(FILE) -d .
+	$(KTC) $(FLAGS) $(XFLAGS) $(FILE) -d $(OUTPUT_DIR)
 
 # run .class file using kotlin <CLASSNAME>
 run: compile
-	$(KT) $(CLASS)
+	$(KT) -cp $(OUTPUT_DIR) $(CLASS)
 
 # clean .class files from current directory
 clean:
