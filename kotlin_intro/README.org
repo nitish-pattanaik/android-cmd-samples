@@ -1,0 +1,13 @@
+#+TITLE: Kotlin Language Exploration
+
+* About:
+- Here, I stored all exploration/experimentation related to learning the kotlin language.
+- Through this project, I'm also trying to learn Makefile (as a build system).
+- Instead of learning ~gradle~, I wants to learn ~Gnu Make~. Because, it's simple, efficient & easy to understand.
+- More than that, I would like to learn things that are *timeless* and *invaluable*.
+
+
+* build
+- Just use: ~make run~
+- That's it. It will by default compile and run *main.kt*.
+- You can change it to compile any other file, just by modifying *Makefile*, or you can specify like ~make run FILE=<newfile_name> CLASS=<newClass_name>~
