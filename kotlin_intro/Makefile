@@ -9,16 +9,18 @@ CLASS = MainKt
 #	$(KTC) $(FILE) -include-runtime -d $(CLASS).jar
 #	$(JAVA) -jar $(CLASS).jar or, $(KT) $(CLASS).jar
 
+# -Xlist-phases -> list phases after IR..
+# -Xphases-to-dump=IrLowering
 
-SFLAGS = -Xdump-directory=C:\PROG_DIR\probe\kotlin-intro\ -Xphases-to-dump-before=ValidateIrBeforeLowering
+XFLAGS = -Xdebug -Xreport-all-warnings -Xuse-fast-jar-file-system
+FLAGS =  -verbose -Werror -Wextra -no-jdk -no-reflect
+# but -no-stdlib is hard..
 
 .PHONY: compile run clean
 
 # compile .kt file to .clss file and that in current directory
-genir:
-	$(KTC) $(SFLAGS) $(FILE) -d .
 compile:
-	$(KTC) $(FILE) -d .
+	$(KTC) $(FLAGS) $(FILE) -d .
 
 # run .class file using kotlin <CLASSNAME>
 run: compile
